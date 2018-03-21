@@ -6,7 +6,7 @@
   
  const char MS1[] = "\r\nECE-412 ATMega328P Tiny OS";
  const char MS2[] = "\r\nby Jacob Cassady Copyright 2018, All Rights Reserved";
- const char MS3[] = "\r\nMenu: (L)CD, (A)CD, (E)EEPROM\r\n";
+ const char MS3[] = "\r\nMenu: (L)CD, (A)CD, (E)EEPROM, (U)Update Config\r\n";
  const char MS5[] = "\r\nInvalid Command Try Again...";
  const char MS6[] = "Volts\r";
   
@@ -30,6 +30,8 @@ void EEPROM_Data_Get(void);
 void EEPROM_Read(void);
 void EEPROM_Write(void);
 
+void update_baudrate(void);
+
 unsigned char ASCII;			//shared I/O variable with Assembly
 unsigned char DATA;				//shared internal variable with Assembly
 char HADC;						//shared ADC variable with Assembly
@@ -39,6 +41,9 @@ int EEPROM_Address;				//shared variable for sharing EEPROM address with assembl
 unsigned int EEPROM_AddressH;
 unsigned int EEPROM_AddressL;
 unsigned char EEPROM_Data;
+
+unsigned int UBRRH;
+unsigned int UBRRL;
 
 char volts[5];					//string buffer for ADC output
 int Acc;						//Accumulator for ADC use
@@ -153,6 +158,16 @@ void get_EEPROM_addresses(void){
 	EEPROM_AddressL = get_EEPROM_address();
 }
 
+void get_UBRR(void){
+	UART_Puts("\r\n=== Please enter a valid USART Baud Rate hexidecimal values by entering a high and low hex address value. ===");
+
+	UART_Puts("\r\n\t= HIGH ADDRESS =");
+	UBRRH = get_EEPROM_address();
+
+	UART_Puts("\r\n\n\tLOW ADDRESS");
+	UBRRL = get_EEPROM_address();
+}
+
 void UART_Puts(const char *str)	{
 	/* Display a string in the PC Terminal Program
 	*/
@@ -256,6 +271,37 @@ void ADC(void) {
 	*/
 }
 
+void modify_baud_rate(void) {
+	get_UBRR();
+	update_baudrate();
+}
+
+void update_config(void) {
+		//Add a 'USART' command and subroutine to allow the user to reconfigure the
+		//serial port parameters during runtime. Modify baud rate, # of data bits, parity,
+		//# of stop bits.
+		unsigned char command;
+		UART_Puts("\r\n=== Update Menu ===");
+		UART_Puts("\r\n(b) Baud Rate, (n) # of data bits, (p) parity, (s) # of stop bits");
+		command = get_response();
+
+		switch(command){
+			// Modify Baud Rate
+			case 'B' | 'b':
+				UART_Puts("\r\nModifying baud rate...");
+				modify_baud_rate();
+				UART_Puts("\r\nBaud rate updated.");
+				break;
+			// Modify # of data bits
+		
+			// Modify parity
+		
+			// Modify # of stop bits
+			default:
+				UART_Puts("\r\nInvalid command.  Returning to main menu...");
+		}		
+}
+
 void Command(void) {
 	/* command interpreter
 	*/
@@ -266,18 +312,21 @@ void Command(void) {
 
 	switch (command) {
 		case ('L' | 'l'):
-		LCD();
-		break;
+			LCD();
+			break;
 		case ('A' | 'a'):
-		ADC();
-		break;
+			ADC();
+			break;
 		case 'E' | 'e':
-		EEPROM();
-		break;
+			EEPROM();
+			break;
+		case 'U' | 'u':
+			update_config();
+			break;
 		default:
-		UART_Puts(MS5);
-		HELP();
-		break;  			//Add a 'USART' command and subroutine to allow the user to reconfigure the 						//serial port parameters during runtime. Modify baud rate, # of data bits, parity, 							//# of stop bits.
+			UART_Puts(MS5);
+			HELP();
+			break;
 	}
 }
 
