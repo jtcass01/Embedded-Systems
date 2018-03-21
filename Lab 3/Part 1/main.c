@@ -134,7 +134,7 @@ unsigned char get_EEPROM_data(void) {
 }
 
 
-unsigned int get_EEPROM_address(void){
+unsigned int get_hex_address(void){
 	unsigned int hex_high, hex_low, address;
 	UART_Puts("\r\n\tEnter hex address in the form of 0xAB");
 	UART_Puts("\r\n\tEnter A: ");
@@ -152,20 +152,20 @@ void get_EEPROM_addresses(void){
 	UART_Puts("\r\n=== Please enter a valid EEPROM Address by entering a high and low hex address value. ===");
 
 	UART_Puts("\r\n\t= HIGH ADDRESS =");
-	EEPROM_AddressH = get_EEPROM_address();
+	EEPROM_AddressH = get_hex_address();
 
 	UART_Puts("\r\n\n\tLOW ADDRESS");
-	EEPROM_AddressL = get_EEPROM_address();
+	EEPROM_AddressL = get_hex_address();
 }
 
 void get_UBRR(void){
 	UART_Puts("\r\n=== Please enter a valid USART Baud Rate hexidecimal values by entering a high and low hex address value. ===");
 
 	UART_Puts("\r\n\t= HIGH ADDRESS =");
-	UBRRH = get_EEPROM_address();
+	UBRRH = get_hex_address();
 
 	UART_Puts("\r\n\n\tLOW ADDRESS");
-	UBRRL = get_EEPROM_address();
+	UBRRL = get_hex_address();
 }
 
 void UART_Puts(const char *str)	{
