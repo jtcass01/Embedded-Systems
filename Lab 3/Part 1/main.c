@@ -47,7 +47,6 @@ unsigned int UBRRH;				// USART Baud Rate Register High
 unsigned int UBRRL;				// USART Baud Rate Register Low
 
 unsigned int UCSR0CV;
-unsigned int NDB;				
 
 unsigned int parity = 0;
 unsigned int n_db = 3;			// # of data bytes
@@ -325,7 +324,7 @@ void get_n_db(void){
 			break;
 		default:
 			UART_Puts("\r\nInvalid character size.  Setting to default value of 8.");
-			n_sb = 6;
+			n_sb = 3;
 	}
 }
 
