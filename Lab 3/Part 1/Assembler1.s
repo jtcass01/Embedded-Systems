@@ -68,6 +68,9 @@
 .global EEPROM_AddressH
 .global EEPROM_AddressL
 .global EEPROM_Data
+.global UBRRH
+.global UBRRL
+.global DATASIGN
 
 .set	temp,0				//Sets a dyanmic value of 0 to the label temp
 
@@ -234,6 +237,15 @@ UART_Get:
 	sts		ASCII,r16			//Stores contents of register 16 into ASCII global variable (shared between C and Assembly)
 	ret							//Returns
 
+UART_Get2:
+	lds		r16,UCSR0A			//Loads register 16 with the contents of USART Control and Status Register 0 A.
+	sbrs	r16,UDRE0			//Skips if USART Receive Complete flag (bit 7) is set (1).
+	ret							//Returning because no data was found.
+	ldi		r16, 'c'
+	sts		DATASIGN, r16
+	ret
+	; YO THERE IS DATA
+
 .global UART_Put
 UART_Put:
 	lds		r17,UCSR0A			//Loads register 17 with the contents of USART Control and Status Register 0 A.
@@ -263,7 +275,7 @@ EEPROM_Write:
 		; Set up address (r18:r17) in address register
 		lds		r18,EEPROM_AddressH	; Load 0 into data register 18
 		lds		r17,EEPROM_AddressL	; Load 5 into data register 17
-		lds		r16,EEPROM_Data		; Load 'F' into data register 16
+		lds		r16,EEPROM_Data		; Load EEPROM_Data into data register 16
 		out     EEARH, r18			; Loads register 18's value (0) into EEPROM Address Register High
 		out     EEARL, r17			; Loads register 17's value (5) into EEPROM Address Register Low
 		out     EEDR,r16			; Write data (r16) to Data Register  
@@ -285,5 +297,13 @@ EEPROM_Read:
 		sts		ASCII,r16  
 		ret
 
+.global update_baudrate
+update_baudrate:
+		lds	r17,UBRRH		//Loads a value of 0 into data register 17
+		lds	r16,UBRRL		//Loads a value of 103 into data register 16
+		sts	UBRR0H,r17		//Stores the value of register 17 (0) into data space USART Baud Rate 0 Register High
+							//These are the four most significant bits of UBRR0
+		sts	UBRR0L,r16		//Stores the value of register 17 (103) into data space USART Baud Rate 0 Register Low
+		ret
 
 		.end
