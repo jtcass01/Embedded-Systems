@@ -61,16 +61,16 @@
 									//'EEPROM Ready Interrupt Enable'
 
 /* Global variables are shared between C and Assembler */
-.global HADC				//High value for ADC
-.global LADC				//Low value for ADC
-.global ASCII				//variable for UART communication
-.global DATA				//variable for LCD string
-.global EEPROM_AddressH
-.global EEPROM_AddressL
-.global EEPROM_Data
-.global UBRRH
-.global UBRRL
-.global DATASIGN
+.global HADC				// High value for ADC
+.global LADC				// Low value for ADC
+.global ASCII				// variable for UART communication
+.global DATA				// variable for LCD string
+.global EEPROM_AddressH		// EEPROM Address Register High
+.global EEPROM_AddressL		// EEPROM Address Register Low
+.global EEPROM_Data			// EEPROM Write Data
+.global UBRRH				// USART Baud Rate Register High
+.global UBRRL				// USART Baud Rate Register Low
+.global UCSR0CV				// UCSR0C value.
 
 .set	temp,0				//Sets a dyanmic value of 0 to the label temp
 
@@ -237,15 +237,6 @@ UART_Get:
 	sts		ASCII,r16			//Stores contents of register 16 into ASCII global variable (shared between C and Assembly)
 	ret							//Returns
 
-UART_Get2:
-	lds		r16,UCSR0A			//Loads register 16 with the contents of USART Control and Status Register 0 A.
-	sbrs	r16,UDRE0			//Skips if USART Receive Complete flag (bit 7) is set (1).
-	ret							//Returning because no data was found.
-	ldi		r16, 'c'
-	sts		DATASIGN, r16
-	ret
-	; YO THERE IS DATA
-
 .global UART_Put
 UART_Put:
 	lds		r17,UCSR0A			//Loads register 17 with the contents of USART Control and Status Register 0 A.
@@ -295,6 +286,12 @@ EEPROM_Read:
 		sbi     EECR,EERE			; Start eeprom read by writing EERE
 		in      r16,EEDR			; Read data from Data Register
 		sts		ASCII,r16  
+		ret
+
+.global update_UCSR0CV
+update_UCSR0CV:
+		lds	r16,UCSR0CV		//Loads decimal value 6 into register 6
+		sts	UCSR0C,r16		//Stores the value of register 16 (6) into data space USART Control and Status Register 0 C
 		ret
 
 .global update_baudrate
