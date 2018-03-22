@@ -1,4 +1,4 @@
- // main.c
+  // main.c
  //
  // Created: 3/17/2018 4:04:52 AM
  // Author : Jacob Cassady
@@ -44,6 +44,8 @@ unsigned char EEPROM_Data;
 
 unsigned int UBRRH;
 unsigned int UBRRL;
+
+unsigned char DATASIGN = 'g';
 
 char volts[5];					//string buffer for ADC output
 int Acc;						//Accumulator for ADC use
@@ -127,6 +129,13 @@ void quick_check(unsigned int val, unsigned int comparator){
 	}
 }
 
+void quick_check(unsigned char val, unsigned char comparator){
+	if(val == comparator) {
+		UART_Puts("\r\nQuick_Check Success.");
+		} else {
+		UART_Puts("\r\nQuick_Check Failure.");
+	}
+}
 
 unsigned char get_EEPROM_data(void) {
 	UART_Puts("\r\nPlease enter an 8-bit data value (char): ");
