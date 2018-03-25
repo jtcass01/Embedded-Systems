@@ -4,6 +4,10 @@
  // Created: 3/17/2018 4:04:52 AM
  // Author : Jacob Cassady
  // Copyright 2018, All Rights Reserved
+
+#include "UCSR0C.h"
+#include "UBRR.h"
+#include "Assembler.h"
   
  const char MS1[] = "\r\nECE-412 ATMega328P Tiny OS";
  const char MS2[] = "\r\nby Jacob Cassady Copyright 2018, All Rights Reserved";
@@ -11,29 +15,14 @@
  const char MS5[] = "\r\nInvalid Command Try Again...";
  const char MS6[] = "Volts\r";
   
-/* Internal Function Prototyes */
-unsigned char get_response(void);
-void UART_Puts(const char *);
+/* Menu Functions */
+void update_config(void);		// Update Configuration Menu
+void Command(void);				// Main menu
 
 /* External Assembly Functions */
-void LCD_Init(void);			
-void UART_Init(void);
-void UART_Clear(void);
-void UART_Get(void);
-void UART_Put(void);
-void LCD_Write_Data(void);
-void LCD_Write_Command(void);
-void LCD_Read_Data(void);
-void Mega328P_Init(void);
-void ADC_Get(void);
-
 void EEPROM_Read(void);
 void EEPROM_Write(void);
 
-void update_baudrate(void);
-void update_UCSR0CV(void);
-
-unsigned char ASCII;			//shared I/O variable with Assembly
 unsigned char DATA;				//shared internal variable with Assembly
 char HADC;						//shared ADC variable with Assembly
 char LADC;						//shared ADC variable with Assembly
@@ -43,27 +32,8 @@ unsigned int EEPROM_AddressH;
 unsigned int EEPROM_AddressL;
 unsigned char EEPROM_Data;
 
-unsigned int UBRRH;				// USART Baud Rate Register High
-unsigned int UBRRL;				// USART Baud Rate Register Low
-
-unsigned int UCSR0CV;
-
-unsigned int parity = 0;
-unsigned int n_db = 3;			// # of data bytes
-unsigned int n_sb = 0;
-
 char volts[5];					//string buffer for ADC output
 int Acc;						//Accumulator for ADC use
-
-unsigned char get_response(void) {
-	ASCII = '\0';
-
-	while (ASCII == '\0') {
-		UART_Get();
-	}
-	
-	return ASCII;
-}
 
 unsigned int hex_char_to_int(unsigned char hex_char){
 	unsigned int result;
@@ -172,26 +142,6 @@ void get_EEPROM_addresses(void){
 	EEPROM_AddressL = get_hex_address();
 }
 
-void get_UBRR(void){
-	UART_Puts("\r\n=== Please enter a valid USART Baud Rate hexidecimal values by entering a high and low hex address value. ===");
-
-	UART_Puts("\r\n\t= HIGH ADDRESS =");
-	UBRRH = get_hex_address();
-
-	UART_Puts("\r\n\n\tLOW ADDRESS");
-	UBRRL = get_hex_address();
-}
-
-void UART_Puts(const char *str)	{
-	/* Display a string in the PC Terminal Program
-	*/
-	while (*str)
-	{
-		ASCII = *str++;
-		UART_Put();
-	}
-}
-
 void LCD_Puts(const char *str) {
 	/* Display a string on the LCD Module
 	*/
@@ -285,146 +235,49 @@ void ADC(void) {
 	*/
 }
 
-void modify_baud_rate(void) {
-	UART_Puts("\r\n\tNote: BAUD=system_oscillator_clock_freq/2(UBRRn + 1)");
-	get_UBRR();
-	update_baudrate();
-}
 
-void compile_UCSR0CV(void){
-	UCSR0CV = n_db * 2;
-	UCSR0CV = UCSR0CV + (n_sb*8);
-	UCSR0CV = UCSR0CV + (parity*16);
-	update_UCSR0CV();
-}
-
-void get_n_db(void){
-	unsigned char n_response = get_response();
-
-	switch(n_response) {
-		case '5':
-			UART_Puts("Setting NDB to 5-bits.");
-			n_sb = 0;
-			break;
-		case '6':
-			UART_Puts("Setting NDB to 6-bits.");
-			n_sb = 1;
-			break;
-		case '7':
-			UART_Puts("Setting NDB to 7-bits.");
-			n_sb = 2;
-			break;
-		case '8':
-			UART_Puts("Setting NDB to 8-bits.");
-			n_sb = 3;
-			break;
-		case '9':
-			UART_Puts("Setting NDB to 9-bits.");
-			n_sb = 7;
-			break;
-		default:
-			UART_Puts("\r\nInvalid character size.  Setting to default value of 8.");
-			n_sb = 3;
-	}
-}
-
-void modify_n_db(void){
-	UART_Puts("\r\n\tNote: valid char sizes: [5, 6, 7, 8, 9]");
-	get_n_db();
-	compile_UCSR0CV();
-}
-
-void get_parity(void){
-	unsigned char p_response = get_response();
-	
-	switch(p_response) {
-		case 'D' | 'd':
-			UART_Puts("Parity set to disabled.");
-			parity = 0;
-			break;
-		case 'E' | 'e':
-			UART_Puts("Parity set to even.");
-			parity = 2;
-			break;
-		case 'O' | 'o':
-			UART_Puts("Parity set to odd.");
-			parity = 3;
-			break;
-		default:
-			UART_Puts("Invalid parity. Setting to default [disabled]");
-			parity = 0;
-	}	
-}
-
-void modify_parity(void){
-	UART_Puts("\r\n\tNote: valid parities: [(d)isabled, (e)ven, (o)dd]");
-	get_parity();
-	compile_UCSR0CV();
-}
-
-void get_n_sb(void){
-	unsigned char n_response = get_response();
-	
-	switch(n_response) {
-		case '1':
-			UART_Puts("\r\nStop-bit setting updated to 1-bit.");
-			n_sb = 0;
-			break;
-		case '2':
-			UART_Puts("\r\nStop-bit setting updated to 2-bit.");
-			n_sb = 1;
-			break;
-		default:
-			UART_Puts("\r\nInvalid stop-bit entry.  Setting to default: 1-bit.");
-			n_sb = 0;
-	}
-}
-
-void modify_n_sb(void){
-	UART_Puts("\r\n\tNote: valid stop-bits: 1, 2");
-	get_n_sb();
-	compile_UCSR0CV();
-}
-
+/*=== Update Configuration Menu === */
 void update_config(void) {
-		//Add a 'USART' command and subroutine to allow the user to reconfigure the
-		//serial port parameters during runtime. Modify baud rate, # of data bits, parity,
-		//# of stop bits.
-		unsigned char command;
-		UART_Puts("\r\n=== Update Menu ===");
-		UART_Puts("\r\n(b) Baud Rate, (n) # of data bits, (p) parity, (s) # of stop bits");
-		command = get_response();
+	//Add a 'USART' command and subroutine to allow the user to reconfigure the
+	//serial port parameters during runtime. Modify baud rate, # of data bits, parity,
+	//# of stop bits.
+	unsigned char command;
+	UART_Puts("\r\n=== Update Menu ===");
+	UART_Puts("\r\n(b) Baud Rate, (n) # of data bits, (p) parity, (s) # of stop bits");
+	command = get_response();
 
-		switch(command){
-			// Modify Baud Rate
-			case 'B' | 'b':
-				UART_Puts("\r\nModifying baud rate...");
-				modify_baud_rate();
-				UART_Puts("\r\nBaud rate updated.");
-				break;
-			// Modify # of data bits
-			case 'N' | 'n':
-				UART_Puts("\r\nModifying # of data bits...");
-				modify_n_db();
-				UART_Puts("\r\n# of data bits updated.");
-				break;
-			// Modify parity
-			case 'P' | 'p':
-				UART_Puts("\r\nModifying parity...");
-				modify_parity();
-				UART_Puts("\r\nParity updated.");
-				break;
-			// Modify # of stop bits
-			case 'S' | 's':
-				UART_Puts("\r\nModifying # of stop bits...");
-				modify_n_sb();
-				UART_Puts("\r\n# of stop bits updated.");
-				break;
-			default:
-				UART_Puts("\r\nInvalid command.  Returning to main menu...");
-		}		
+	switch(command){
+		// Modify Baud Rate
+		case 'B' | 'b':
+		UART_Puts("\r\nModifying baud rate...");
+		modify_baud_rate();
+		UART_Puts("\r\nBaud rate updated.");
+		break;
+		// Modify # of data bits
+		case 'N' | 'n':
+		UART_Puts("\r\nModifying # of data bits...");
+		modify_n_db();
+		UART_Puts("\r\n# of data bits updated.");
+		break;
+		// Modify parity
+		case 'P' | 'p':
+		UART_Puts("\r\nModifying parity...");
+		modify_parity();
+		UART_Puts("\r\nParity updated.");
+		break;
+		// Modify # of stop bits
+		case 'S' | 's':
+		UART_Puts("\r\nModifying # of stop bits...");
+		modify_n_sb();
+		UART_Puts("\r\n# of stop bits updated.");
+		break;
+		default:
+		UART_Puts("\r\nInvalid command.  Returning to main menu...");
+	}
 }
 
+
+/*=== Standard Menu ===*/
 void Command(void) {
 	/* command interpreter
 	*/
@@ -452,6 +305,7 @@ void Command(void) {
 			break;
 	}
 }
+
 
 int main(void) {
 	Mega328P_Init();
