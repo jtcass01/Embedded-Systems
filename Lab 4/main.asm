@@ -5,15 +5,15 @@
 ; Author : JakeT
 ;
 
-		.org 0					;student discuss interrupts and vector table in report
-		jmp RESET				;student discuss reset in report
-		jmp TIM1_COMPA
+		.org	0					;student discuss interrupts and vector table in report
+		jmp		RESET				;student discuss reset in report
+		jmp		TIM1_COMPA
 
 RESET:	;Initialize the ATMega328P chip for the THIS embedded application.
 		;initialize PORTB for Output
 		cli
-		ldi	r16,0xFF				;PB1 or OC1A Output
-		out	DDRB,r16				;PORTB pins set to output
+		ldi		r16,0xFF			;PB1 or OC1A Output
+		out		DDRB,r16			;PORTB pins set to output
 
 ;initialize and start Timer A, compare match, interrupt enabled
 
@@ -22,9 +22,9 @@ RESET:	;Initialize the ATMega328P chip for the THIS embedded application.
 		;Bits 4:5,6:7 - COM1B/COM1A respectively : Compare output mode for channel
 		;COM1A & COM1B control output compare pins
 		;Can be set to non-PWM or fast PWM mode
-		ldi	r16,0x81			;set OC to compare match set output to high level
-		sts TCCR1A,r16			;Stores a binary value of 1100 0000
-								; This sets OC1A on Compare Match (non-PWM) (Set output to high level)
+		ldi		r16,0x81			; Set OC to compare match set output to high level
+		sts		TCCR1A,r16			; Stores a binary value of 0100 0001
+									; This combined with TCCR1B sets the WGM to Fast PWM, 8-bit
 
 		;TCCR1B : Page 173 ATmega328P Sheet
 		;TC1 Control Register 1 B
@@ -40,8 +40,8 @@ RESET:	;Initialize the ATMega328P chip for the THIS embedded application.
 			*/
 		;Bit 2:0 - CS1  : Three clock select bits, select clock source to be used.
 		;set clock prescaler
-		ldi r16,0x0A			; Load register 16 with a binary value of 0000 0100
-		sts TCCR1B,r16			; This sets the clock source to clkI/O/256
+		ldi		r16,0x0A			; Load register 16 with a binary value of 0000 0100
+		sts		TCCR1B,r16			; This sets the clock source to clkI/O/8
 
 
 		;TCCR1C : Page 175 ATmega328P Sheet
@@ -49,13 +49,9 @@ RESET:	;Initialize the ATMega328P chip for the THIS embedded application.
 		;Bits 6,7 - FOC1 : Force output compare for channel B & A
 		;Only active when WGM1 bits specificies non-PWM mode
 		;force output compare, set PB1 high
-		ldi r16,0x00			; Loads a binary value of 1000 0000 into register 16
-		sts TCCR1C,r16			; forces compare on Waveform Generation unit
-								; varies depending on COM1x[1:0] bit settings
-
-		ldi	r17,0
-		ldi r18,0
-		ldi r16,1
+		ldi		r16,0x00			; Loads a binary value of 0000 0000 into register 16
+		sts		TCCR1C,r16			; forces compare on Waveform Generation unit
+									; varies depending on COM1x[1:0] bit settings
 
 		; OCR1A : Page 180-181 ATmega328P sheet
 		/* Note: The counter reaches the TOP when it becomes equal to the highest value in the count sequence.
@@ -63,29 +59,31 @@ RESET:	;Initialize the ATMega328P chip for the THIS embedded application.
 		*	The assignment is dependant on the mode of operation. 
 		*/
 		;continuously compared w/ counter value
-		;Match can either generate an interrupt or waveform output on OC1A pin
+		;Match can either generate an interrupt or waveform output on OCR1A pin
 		;In this setup, it is acting as an interrupt
-		sts OCR1AH, r18
-		sts	OCR1AL, r17
+		ldi		r17,0				; Initialize High, low registers for keeping track of variable OCR1A values
+		ldi		r18,0
+		sts		OCR1AH, r18
+		sts		OCR1AL, r17
 
 ; Increment OCR1AL to increase intensity.
 IncrementLow:
-		inc	r17
-		sts	OCR1AL, r17
-		call TimeDelay				; Add a time delay to slow change in intensity.
-		ldi	r18,255
-		cp	r17,r18
-		brne IncrementLow
+		inc		r17
+		sts		OCR1AL, r17
+		call	TimeDelay			; Add a time delay to slow change in intensity.
+		cp		r17,r18
+		brne	IncrementLow
+		ldi		r18,0
 
 ; Decrement OCR1AL to decrease intensity.
 DecrementLow:
-		dec	r17
-		sts	OCR1AL, r17
-		call TimeDelay				; Add a time delay to slow change in intensity.
-		ldi	r18,0
-		cp	r17,r18
-		brne DecrementLow
-		jmp IncrementLow			; Loop back to incrementing when done decrementing
+		dec		r17
+		sts		OCR1AL, r17
+		call	TimeDelay			; Add a time delay to slow change in intensity.
+		cp		r17,r18
+		brne	DecrementLow
+		ldi		r18,255
+		jmp		IncrementLow		; Loop back to incrementing when done decrementing
 
 TIM1_COMPA:							;TC 1 compare match A handler
 		sbrc	r19,0				;Skip if bit 0 in register 19 is cleared.
@@ -113,13 +111,13 @@ BEGIN:	lds		r16,OCR1AL			; Loads data stored in Output Compare Register 1 A L (L
 		sts		OCR1AL,r17			; Store register 17's data back into Output Compare Register 1 A L
 		reti						; Return from interrupt
 
-TimeDelay:						// Total time delay = r22*r23
+TimeDelay:							; Total time delay = r22*r23
 		ldi		r22,255
 		ldi		r23,200
 innerloop:
-		dec		r22				; Decrements r22
-		brne	innerloop		; Returns to inner loop until zero
-		ldi		r22,255			; Reloads r22
-		dec		r23				; Decrements r23
-		brne	innerloop		; Returns to inner loop when r23 = 0
+		dec		r22					; Decrements r22
+		brne	innerloop			; Returns to inner loop until zero
+		ldi		r22,255				; Reloads r22
+		dec		r23					; Decrements r23
+		brne	innerloop			; Returns to inner loop when r23 = 0
 		ret
